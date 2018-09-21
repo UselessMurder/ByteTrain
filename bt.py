@@ -63,25 +63,25 @@ class ByteTrain(object):
 
     def __read_bytes(self, count):
         while True:
-            content, code = self.reader(count)
+            content, code = self.reader.read(count)
             if code == BTErrorCode.BT_ERROR_TIMEOUT:
-                if not self.wait_object.Wait():
+                if not self.wait_object.wait():
                     raise WaitOver(self.wait_object.get_reason(), self.wait_object.get_code())
                 continue
             return content
 
     def __read_type(self):
         content = self.__read_bytes(1)
-        code = struct.unpack('<B', content)
+        code = struct.unpack('<B', content)[0]
         return code
 
-    def __run_with_increment(code, ctx):
+    def __run_with_increment(self, code, ctx):
         ctx.count += 1
         return self.default_handlers[code](ctx)
 
 
     def __init_default_handlers(self):
-        handlers = {[
+        handlers = dict([
                 (BTTypeCode.BT_CODE_BYTE, self.__read_byte),
                 (BTTypeCode.BT_CODE_WORD, self.__read_word),
                 (BTTypeCode.BT_CODE_DWORD, self.__read_dword),
@@ -93,53 +93,53 @@ class ByteTrain(object):
                 (BTTypeCode.BT_CODE_HANDLER_BEGIN, self.__read_embedded_handler_begin),
                 (BTTypeCode.BT_CODE_HANDLER_END, self.__read_embedded_handler_end),
                 (BTTypeCode.BT_CODE_BREAK, self.__read_break)
-        ]}
+        ])
         return handlers
 
     def __init_embedded_handlers(self):
-        handlers = {[
+        handlers = dict([
                 (BTMagicCode.BT_CHAIN_MAGIC, self.__read_chain),
                 (BTMagicCode.BT_ARRAY_MAGIC, self.__read_array)
-                ]}
+                ])
         return handlers
 
     def read_message(self):
         ctx = BTContext(False)
         (val, code) = self.__run_with_increment(self.__read_type(), ctx)
-        if ctx.break_level != 0 or ctx.in_break or ctx.depth != 0:
+        if ctx.break_level != 0 or ctx.in_break:
             raise RuntimeError('Broken ctx %s' % ctx)
         return (val, code, ctx.errors)
             
     def __read_byte(self, ctx):
-        return (struct.unpack('<B', self.__read_bytes(1)), BTUserType.BT_U_CODE_BYTE)
+        return (struct.unpack('<B', self.__read_bytes(1))[0], BTUserType.BT_U_CODE_BYTE)
 
     def __read_word(self, ctx):
-        return (struct.unpack('<H', self.__read_bytes(2)), BTUserType.BT_U_CODE_WORD)
+        return (struct.unpack('<H', self.__read_bytes(2))[0], BTUserType.BT_U_CODE_WORD)
 
     def __read_dword(self, ctx): 
-        return (struct.unpack('<L', self.__read_bytes(4)), BTUserType.BT_U_CODE_DWORD)
+        return (struct.unpack('<L', self.__read_bytes(4))[0], BTUserType.BT_U_CODE_DWORD)
     
     def __read_qword(self, ctx): 
-        return (struct.unpack('<Q', self.__read_bytes(8)), BTUserType.BT_U_CODE_QWORD)
+        return (struct.unpack('<Q', self.__read_bytes(8))[0], BTUserType.BT_U_CODE_QWORD)
 
     def __read_byte_buffer(self, ctx):
-        size = struct.unpack('<B', self.__read_bytes(1))
+        size = struct.unpack('<B', self.__read_bytes(1))[0]
         return (self.__read_bytes(size), BTUserType.BT_U_CODE_BUFFER)
 
     def __read_word_buffer(self, ctx):
-        size = struct.unpack('<H', self.__read_bytes(2))
+        size = struct.unpack('<H', self.__read_bytes(2))[0]
         return (self.__read_bytes(size), BTUserType.BT_U_CODE_BUFFER)
     
     def __read_dword_buffer(self, ctx):
-        size = struct.unpack('<L', self.__read_bytes(4))
+        size = struct.unpack('<L', self.__read_bytes(4))[0]
         return (self.__read_bytes(size), BTUserType.BT_U_CODE_BUFFER)
 
     def __read_qword_buffer(self, ctx):
-        size = struct.unpack('<Q', self.__read_bytes(8))
+        size = struct.unpack('<Q', self.__read_bytes(8))[0]
         return (self.__read_bytes(size), BTUserType.BT_U_CODE_BUFFER)
 
     def __read_embedded_handler_begin(self, ctx):
-        magic = struct.unpack('<H', self.__read_bytes(2))
+        magic = struct.unpack('<H', self.__read_bytes(2))[0]
         return self.embedded_handlers[magic](ctx)
 
     def __read_embedded_handler_end(self, ctx):
@@ -149,8 +149,8 @@ class ByteTrain(object):
         if ctx.in_break:
             raise RuntimeError('Nested break')
         content = self.read_bytes(2)
-        level = struct.unpack('<B', content[0:1])
-        count = struct.unpack('<B', content[1:2])
+        level = struct.unpack('<B', content[0:1])[0]
+        count = struct.unpack('<B', content[1:2])[0]
         error_content = []
         ctx.break_level = level
         break_ctx = BTContext(True)

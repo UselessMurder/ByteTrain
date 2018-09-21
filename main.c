@@ -59,13 +59,24 @@ int main() {
     }
     srand((unsigned int)time(NULL));
     uint8_t *arr = NULL;
-    arr = gen_rdm_bytestream(0xFFFFFFFF3);
-    if(bt_write_buffer(&bt, arr, 0xFFFFFFFF3)) {
+    arr = gen_rdm_bytestream(0xF3);
+    if(bt_write_buffer(&bt, arr, 0xF3)) {
         printf("fail\n");
         return 1;
     }
     free(arr); 
-
+    arr = gen_rdm_bytestream(0xFF3);
+    if(bt_write_buffer(&bt, arr, 0xFF3)) {
+        printf("fail\n");
+        return 1;
+    }
+    free(arr); 
+    arr = gen_rdm_bytestream(0xFFFF3);
+    if(bt_write_buffer(&bt, arr, 0xFFFF3)) {
+        printf("fail\n");
+        return 1;
+    }
+    free(arr); 
     printf("done\n");
     return 0;
 }
